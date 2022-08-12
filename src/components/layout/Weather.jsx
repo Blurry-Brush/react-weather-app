@@ -1,6 +1,11 @@
-import { useContext, useState, useEffect } from "react";
+import {
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import WeatherContext from "../WeatherContext";
-import cloudy from "../Assets/cloudy.jpg";
 import clear from "../Assets/clear.jpg";
 import drizzle from "../Assets/drizzle.jpg";
 import fog_mist from "../Assets/fog_mist.jpg";
@@ -8,7 +13,9 @@ import rainy from "../Assets/rainy.jpg";
 import sand from "../Assets/sand.jpg";
 import snow from "../Assets/snow.jpg";
 import thunderstorm from "../Assets/thunderstorm.jpg";
+import cloudytu from "../Assets/cloudy-tu.jpg";
 import Loading from "./Loading";
+import { gsap } from "gsap";
 
 function Weather() {
   const { loading, weatherData, setLoading, setWeatherData } =
@@ -17,7 +24,7 @@ function Weather() {
   const [text, setText] = useState("");
   const [city, setCity] = useState("London");
 
-  const API_KEY = "79cc35345f8949205e012e9e381757b8";
+  const API_KEY = process.env.REACT_APP_API_KEY;
 
   useEffect(() => {
     fetch(
@@ -28,7 +35,7 @@ function Weather() {
       .then((data) => setWeatherData(data));
 
     setLoading(false);
-  }, [city, setLoading, setWeatherData]);
+  }, [API_KEY, city, setLoading, setWeatherData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -46,50 +53,57 @@ function Weather() {
   //TODO: background change with the weather according to the id and icons and location
 
   // destructing weather
-  const { weather, main, wind} = weatherData;
+  const { weather, main, wind } = weatherData;
   var background;
   //for setting the background
 
-  if(weather){
-    const idee = weather[0].id
-    if(idee >= 200 && idee <= 232){
+  if (weather) {
+    const idee = weather[0].id;
+    if (idee >= 200 && idee <= 232) {
       background = thunderstorm;
-    }
-    else if(idee >= 300 && idee <= 321){
-      background = drizzle
-    }
-    else if(idee >= 500 && idee <= 531){
-      background = rainy
-    }
-    else if(idee >= 600 && idee <= 622){
-      background = snow
-    }
-    else if(idee === 701 || idee === 721 || idee === 741){
-      background =  fog_mist
-    }
-    else if(idee === 800){
-      background = clear
-    }
-    else if(idee >= 801 && idee <= 804){
-      background = cloudy
-    }
-    else if(idee === 751 || idee === 761 || idee === 762){
-      background = sand
-    }
-    else{
-      background = clear
+    } else if (idee >= 300 && idee <= 321) {
+      background = drizzle;
+    } else if (idee >= 500 && idee <= 531) {
+      background = rainy;
+    } else if (idee >= 600 && idee <= 622) {
+      background = snow;
+    } else if (idee === 701 || idee === 721 || idee === 741) {
+      background = fog_mist;
+    } else if (idee === 800) {
+      background = clear;
+    } else if (idee >= 801 && idee <= 804) {
+      background = cloudytu;
+    } else if (idee === 751 || idee === 761 || idee === 762) {
+      background = sand;
+    } else {
+      background = clear;
     }
   }
-  // event listener for the enter keydown 
 
+  //animations
 
-  
+  const bgRef = useRef();
+
+  useLayoutEffect(() => {
+    gsap.from(bgRef.current, {
+      opacity: 0,
+      delay: 1,
+      duration: 2,
+    });
+  }, [city]);
+
+  useLayoutEffect(() => {
+    var tl = gsap.timeline({ repeat: -1, repeatDelay: 10 });
+    tl.fromTo("#icon", { x: 130 }, { x: -130, delay: 2, duration: 4 });
+    tl.to("#icon", { x: 0, duration: 5 });
+  }, []);
 
   if (loading) {
     return <Loading />;
   } else if (weatherData) {
     return (
       <div
+        ref={bgRef}
         className="min-h-screen bg-cover bg-center"
         style={{ backgroundImage: `url(${background})` }}
       >
@@ -112,7 +126,6 @@ function Weather() {
                   <h1 className="text-9xl text-white text-opacity-70">
                     {" "}
                     {main ? `${Math.floor(main.temp)}°` : null}{" "}
-                    
                   </h1>
                 </div>
 
@@ -128,14 +141,23 @@ function Weather() {
                       id="bruh"
                       className="text-white text-opacity-60 text-xl"
                     >
-                      Turn the Page 
+                      Turn the Page
                     </h1>
                   </div>
                 </div>
 
                 <div className="flex-col space-y-3">
                   <div className="rounded-xl bg-cyan-500">
-                    <img style={{height: "4.4rem"}} src={weather? `http://openweathermap.org/img/wn/${weather[0].icon}.png` : null} alt="da" />
+                    <img
+                      id="icon"
+                      style={{ height: "4.4rem" }}
+                      src={
+                        weather
+                          ? `http://openweathermap.org/img/wn/${weather[0].icon}.png`
+                          : null
+                      }
+                      alt="da"
+                    />
                   </div>
                   <div>
                     <h1 className="text-white text-opacity-60 text-xl">
@@ -154,7 +176,7 @@ function Weather() {
           >
             {/* top search bar*/}
             <div className="container text-center mx-auto w-fit mt-10">
-              <div class="form-control">
+              <div className="form-control">
                 <div class="input-group w-full">
                   <input
                     type="text"
@@ -162,9 +184,11 @@ function Weather() {
                     class="input input-bordered input-accent w-96 focus:outline-none"
                     value={text}
                     onChange={handleChange}
-                    onKeyDown={(e) => {if(e.key === "Enter"){
-                      document.getElementById("myBtn").click()
-                    }}}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        document.getElementById("myBtn").click();
+                      }
+                    }}
                   />
                   <button
                     id="myBtn"
@@ -328,7 +352,9 @@ function Weather() {
               </div>
             </div>
             <div class="w-full  mt-2 mx-auto badge badge-info badge-outline outline-cyan-500">
-              <a href="https://github.com/Blurry-Brush" className="link">Made by Lord Yuwu</a>
+              <a href="https://github.com/Blurry-Brush" className="link">
+                Made by Lord Yuwu
+              </a>
             </div>
           </div>
         </div>
